@@ -1,5 +1,6 @@
 -----------------------------------
 -- Zone: Everbloom_Hollow
+-- !zone 86
 -----------------------------------
 local ID = require('scripts/zones/Everbloom_Hollow/IDs')
 -----------------------------------
@@ -10,11 +11,6 @@ end
 
 zoneObject.onInstanceZoneIn = function(player, instance)
     local cs = -1
-
-    if player:getInstance() == nil then
-        player:setPos(0, 0, 0, 0, 72)
-        return cs
-    end
 
     local pos = player:getPos()
     if pos.x == 0 and pos.y == 0 and pos.z == 0 then
@@ -35,7 +31,7 @@ zoneObject.onEventFinish = function(player, csid, option)
 end
 
 zoneObject.onInstanceLoadFailed = function()
-    return 72
+    return xi.zone.BATALLIA_DOWNS_S
 end
 
 return zoneObject
