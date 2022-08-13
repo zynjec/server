@@ -3378,7 +3378,7 @@ namespace luautils
         if (!result.valid())
         {
             sol::error err = result;
-            ShowError("luautils::onMobRoonMobRoamActionam: %s", err.what());
+            ShowError("luautils::onMobRoamAction: %s", err.what());
             return -1;
         }
 
