@@ -987,7 +987,7 @@ function getElementalDamageReduction(target, element)
     return defense
 end
 
-function getHelixDuration(caster)
+xi.magic.getHelixDuration = function(caster)
     --Dark Arts will further increase Helix duration, but testing is ongoing.
 
     local casterLevel = caster:getMainLvl()
@@ -999,6 +999,8 @@ function getHelixDuration(caster)
     elseif casterLevel <= 99 then
         duration = 90
     end
+
+    duration = duration + caster:getMod(xi.mod.HELIX_DURATION)
 
     if caster:hasStatusEffect(xi.effect.DARK_ARTS) then
         local jpValue = caster:getJobPointLevel(xi.jp.DARK_ARTS_EFFECT)

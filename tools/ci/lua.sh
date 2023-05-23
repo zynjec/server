@@ -138,7 +138,6 @@ global_objects=(
     getElementalDamageReduction
     getElementalDebuffDOT
     getFlourishAnimation
-    getHelixDuration
     getHitRate
     getMagicHitRate
     getMagicResist

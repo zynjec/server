@@ -45,7 +45,7 @@ spellObject.onSpellCast = function(caster, target, spell)
     -- calculate Damage over time
     dot = target:magicDmgTaken(dot, spell:getElement())
 
-    local duration = getHelixDuration(caster) + caster:getMod(xi.mod.HELIX_DURATION)
+    local duration = xi.magic.getHelixDuration(caster)
 
     duration = duration * (resist / 2)
 
