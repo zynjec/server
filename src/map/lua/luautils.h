@@ -259,6 +259,8 @@ namespace luautils
     int32 OnMobDeath(CBaseEntity* PMob, CBaseEntity* PKiller);
     int32 OnMobDespawn(CBaseEntity* PMob);
 
+    int32 OnPlayerAbilityUse(CBaseEntity* PMob, CBaseEntity* PPlayer, CAbility* PAbility); // when a player uses an ability and mob is in notoriety container
+
     int32 OnPetLevelRestriction(CBaseEntity* PMob);
 
     int32 OnPath(CBaseEntity* PEntity);
