@@ -116,13 +116,14 @@ void auth_session::read_func()
         ShowWarning(fmt::format("login_parse: bad username or password from {}", ipAddress));
         return;
     }
-    auto sql = std::make_unique<SqlConnection>();
+
+    auto _sql = std::make_unique<SqlConnection>();
 
     char escaped_name[16 * 2 + 1] = {};
     char escaped_pass[32 * 2 + 1] = {};
 
-    sql->EscapeString(escaped_name, username.c_str());
-    sql->EscapeString(escaped_pass, password.c_str());
+    _sql->EscapeString(escaped_name, username.c_str());
+    _sql->EscapeString(escaped_pass, password.c_str());
 
     username = escaped_name;
     password = escaped_pass;
@@ -138,33 +139,33 @@ void auth_session::read_func()
         {
             DebugSockets(fmt::format("LOGIN_ATTEMPT from {}", ipAddress));
 
-            int32 ret = sql->Query("SELECT accounts.id,accounts.status FROM accounts WHERE accounts.login = '%s' AND accounts.password = PASSWORD('%s')",
-                                   escaped_name, escaped_pass);
+            int32 ret = _sql->Query("SELECT accounts.id,accounts.status FROM accounts WHERE accounts.login = '%s' AND accounts.password = PASSWORD('%s')",
+                                    escaped_name, escaped_pass);
 
-            if (ret != SQL_ERROR && sql->NumRows() != 0)
+            if (ret != SQL_ERROR && _sql->NumRows() != 0)
             {
-                ret = sql->NextRow();
+                ret = _sql->NextRow();
 
-                uint32 accountID = sql->GetUIntData(0);
-                uint32 status    = sql->GetUIntData(1);
+                uint32 accountID = _sql->GetUIntData(0);
+                uint32 status    = _sql->GetUIntData(1);
 
                 if (status & ACCOUNT_STATUS_CODE::NORMAL)
                 {
-                    sql->Query("UPDATE accounts SET accounts.timelastmodify = NULL WHERE accounts.id = %d", accountID);
+                    _sql->Query("UPDATE accounts SET accounts.timelastmodify = NULL WHERE accounts.id = %d", accountID);
 
-                    ret = sql->Query("SELECT charid, server_addr, server_port \
+                    ret = _sql->Query("SELECT charid, server_addr, server_port \
                                         FROM accounts_sessions JOIN accounts \
                                         ON accounts_sessions.accid = accounts.id \
                                         WHERE accounts.id = %d;",
-                                     accountID);
+                                      accountID);
 
-                    if (ret != SQL_ERROR && sql->NumRows() == 1)
+                    if (ret != SQL_ERROR && _sql->NumRows() == 1)
                     {
-                        while (sql->NextRow() == SQL_SUCCESS)
+                        while (_sql->NextRow() == SQL_SUCCESS)
                         {
-                            /*uint32 charid = sql->GetUIntData(0);
-                            uint64 ip     = sql->GetUIntData(1);
-                            uint64 port   = sql->GetUIntData(2);
+                            /*uint32 charid = _sql->GetUIntData(0);
+                            uint64 ip     = _sql->GetUIntData(1);
+                            uint64 port   = _sql->GetUIntData(2);
 
                             ip |= (port << 32);
 
@@ -188,10 +189,10 @@ void auth_session::read_func()
                             FROM accounts_sessions \
                             WHERE accid = %u LIMIT 1;";
 
-                    if (sql->Query(fmtQuery, accountID) != SQL_ERROR && sql->NumRows() != 0 && sql->NextRow() == SQL_SUCCESS)
+                    if (_sql->Query(fmtQuery, accountID) != SQL_ERROR && _sql->NumRows() != 0 && _sql->NextRow() == SQL_SUCCESS)
                     {
                         // TODO: kick player out of map server if already logged in
-                        // uint32 charid = sql->GetUIntData(0);
+                        // uint32 charid = _sql->GetUIntData(0);
 
                         // This error message doesn't work when sent this way. Unknown how to transmit "1039" error message to a client already logged in.
                         // session_t& authenticatedSession = get_authenticated_session(socket_, session.sentAccountID);
@@ -249,23 +250,23 @@ void auth_session::read_func()
             }
 
             // looking for same login
-            if (sql->Query("SELECT accounts.id FROM accounts WHERE accounts.login = '%s'", escaped_name) == SQL_ERROR)
+            if (_sql->Query("SELECT accounts.id FROM accounts WHERE accounts.login = '%s'", escaped_name) == SQL_ERROR)
             {
                 ref<uint8>(data_, 0) = LOGIN_ERROR_CREATE;
                 do_write(1);
                 return;
             }
 
-            if (sql->NumRows() == 0)
+            if (_sql->NumRows() == 0)
             {
                 // creating new account_id
                 uint32 accid = 0;
 
-                if (sql->Query("SELECT max(accounts.id) FROM accounts;") != SQL_ERROR && sql->NumRows() != 0)
+                if (_sql->Query("SELECT max(accounts.id) FROM accounts;") != SQL_ERROR && _sql->NumRows() != 0)
                 {
-                    sql->NextRow();
+                    _sql->NextRow();
 
-                    accid = sql->GetUIntData(0) + 1;
+                    accid = _sql->GetUIntData(0) + 1;
                 }
                 else
                 {
@@ -286,9 +287,9 @@ void auth_session::read_func()
                 char strtimecreate[128];
                 strftime(strtimecreate, sizeof(strtimecreate), "%Y:%m:%d %H:%M:%S", &timecreateinfo);
 
-                if (sql->Query("INSERT INTO accounts(id,login,password,timecreate,timelastmodify,status,priv) \
+                if (_sql->Query("INSERT INTO accounts(id,login,password,timecreate,timelastmodify,status,priv) \
                                 VALUES(%d,'%s',PASSWORD('%s'),'%s',NULL,%d,%d);",
-                               accid, escaped_name, escaped_pass, strtimecreate, ACCOUNT_STATUS_CODE::NORMAL, ACCOUNT_PRIVILEGE_CODE::USER) == SQL_ERROR)
+                                accid, escaped_name, escaped_pass, strtimecreate, ACCOUNT_STATUS_CODE::NORMAL, ACCOUNT_PRIVILEGE_CODE::USER) == SQL_ERROR)
                 {
                     ref<uint8>(data_, 0) = LOGIN_ERROR_CREATE;
                     do_write(1);
@@ -309,11 +310,11 @@ void auth_session::read_func()
         }
         case LOGIN_CHANGE_PASSWORD:
         {
-            int32 ret = sql->Query("SELECT accounts.id,accounts.status \
+            int32 ret = _sql->Query("SELECT accounts.id,accounts.status \
                                     FROM accounts \
                                     WHERE accounts.login = '%s' AND accounts.password = PASSWORD('%s')",
-                                   escaped_name, escaped_pass);
-            if (ret == SQL_ERROR || sql->NumRows() == 0)
+                                    escaped_name, escaped_pass);
+            if (ret == SQL_ERROR || _sql->NumRows() == 0)
             {
                 ShowWarning(fmt::format("login_parse: user <{}> could not be found using the provided information. Aborting.", str(escaped_name)));
                 ref<uint8>(data_, 0) = LOGIN_ERROR;
@@ -321,10 +322,10 @@ void auth_session::read_func()
                 return;
             }
 
-            ret = sql->NextRow();
+            ret = _sql->NextRow();
 
-            uint32 accid  = sql->GetUIntData(0);
-            uint8  status = (uint8)sql->GetUIntData(1);
+            uint32 accid  = _sql->GetUIntData(0);
+            uint8  status = (uint8)_sql->GetUIntData(1);
 
             if (status & ACCOUNT_STATUS_CODE::BANNED)
             {
@@ -347,12 +348,12 @@ void auth_session::read_func()
                 }
 
                 char escaped_updated_password[32 * 2 + 1];
-                sql->EscapeString(escaped_updated_password, updated_password.c_str());
+                _sql->EscapeString(escaped_updated_password, updated_password.c_str());
 
-                sql->Query("UPDATE accounts SET accounts.timelastmodify = NULL WHERE accounts.id = %d", accid);
+                _sql->Query("UPDATE accounts SET accounts.timelastmodify = NULL WHERE accounts.id = %d", accid);
 
-                ret = sql->Query("UPDATE accounts SET accounts.password = PASSWORD('%s') WHERE accounts.id = %d",
-                                 escaped_updated_password, accid);
+                ret = _sql->Query("UPDATE accounts SET accounts.password = PASSWORD('%s') WHERE accounts.id = %d",
+                                  escaped_updated_password, accid);
                 if (ret == SQL_ERROR)
                 {
                     ShowWarning(fmt::format("login_parse: Error trying to update password in database for user <{}>.", str(escaped_name)));
