@@ -22,4 +22,7 @@ xi.settings.search =
 
     -- Interval is in seconds, default is one hour
     EXPIRE_INTERVAL = 3600,
+
+    -- true/false: Enable/disable logging the content of packets being sent to the client (required Debug mode)
+    DEBUG_OUT_PACKETS = false,
 }
